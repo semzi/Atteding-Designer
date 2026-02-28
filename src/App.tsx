@@ -38,91 +38,110 @@ function App() {
     }
   }
 
-  const createCircularCrop = (imageSrc: string, cropArea: CropArea): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image()
-      img.crossOrigin = 'anonymous'
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
-        const size = Math.min(cropArea.width, cropArea.height)
-        canvas.width = size
-        canvas.height = size
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
-          reject(new Error('Could not get canvas context'))
-          return
+  const createCircularCrop = async (imageSrc: string, cropArea: CropArea): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        let imageUrl = imageSrc
+        if (imageSrc.startsWith('blob:')) {
+          imageUrl = imageSrc
         }
-
-        ctx.beginPath()
-        ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI)
-        ctx.closePath()
-        ctx.clip()
-
-        ctx.drawImage(
-          img,
-          cropArea.x,
-          cropArea.y,
-          cropArea.width,
-          cropArea.height,
-          0,
-          0,
-          size,
-          size
-        )
-
-        resolve(canvas.toDataURL('image/png', 1.0))
-      }
-      img.onerror = reject
-      img.src = imageSrc
-    })
-  }
-
-  const mergeWithFlyer = async (circularImage: string): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const flyer = new Image()
-      flyer.crossOrigin = 'anonymous'
-      const profile = new Image()
-      profile.crossOrigin = 'anonymous'
-
-      flyer.onload = () => {
-        profile.onload = () => {
+        
+        const img = new Image()
+        img.onload = () => {
           const canvas = document.createElement('canvas')
-          canvas.width = flyer.naturalWidth
-          canvas.height = flyer.naturalHeight
+          const size = Math.min(cropArea.width, cropArea.height)
+          canvas.width = size
+          canvas.height = size
           const ctx = canvas.getContext('2d')
           if (!ctx) {
             reject(new Error('Could not get canvas context'))
             return
           }
 
-          ctx.drawImage(flyer, 0, 0)
-
-          const circleSize = flyer.naturalWidth * 0.336
-          const centerX = flyer.naturalWidth * 0.5051
-          const centerY = flyer.naturalHeight * 0.6251
-
-          ctx.save()
           ctx.beginPath()
-          ctx.arc(centerX, centerY, circleSize / 2, 0, 2 * Math.PI)
+          ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI)
           ctx.closePath()
           ctx.clip()
 
           ctx.drawImage(
-            profile,
-            centerX - circleSize / 2,
-            centerY - circleSize / 2,
-            circleSize,
-            circleSize
+            img,
+            cropArea.x,
+            cropArea.y,
+            cropArea.width,
+            cropArea.height,
+            0,
+            0,
+            size,
+            size
           )
-          ctx.restore()
 
-          resolve(canvas.toDataURL('image/jpeg', 0.95))
+          resolve(canvas.toDataURL('image/png', 1.0))
         }
-        profile.onerror = reject
-        profile.src = circularImage
+        img.onerror = reject
+        img.src = imageUrl
+      } catch (error) {
+        reject(error)
       }
-      flyer.onerror = reject
-      flyer.src = '/flyer.jpg'
+    })
+  }
+
+  const loadImageAsBlob = async (url: string): Promise<string> => {
+    const response = await fetch(url)
+    const blob = await response.blob()
+    return URL.createObjectURL(blob)
+  }
+
+  const mergeWithFlyer = async (circularImage: string): Promise<string> => {
+    return new Promise(async (resolve, reject) => {
+      try {
+        const flyerBlobUrl = await loadImageAsBlob('/flyer.jpg')
+        
+        const flyer = new Image()
+        const profile = new Image()
+
+        flyer.onload = () => {
+          profile.onload = () => {
+            const canvas = document.createElement('canvas')
+            canvas.width = flyer.naturalWidth
+            canvas.height = flyer.naturalHeight
+            const ctx = canvas.getContext('2d')
+            if (!ctx) {
+              reject(new Error('Could not get canvas context'))
+              return
+            }
+
+            ctx.drawImage(flyer, 0, 0)
+
+            const circleSize = flyer.naturalWidth * 0.336
+            const centerX = flyer.naturalWidth * 0.5051
+            const centerY = flyer.naturalHeight * 0.6251
+
+            ctx.save()
+            ctx.beginPath()
+            ctx.arc(centerX, centerY, circleSize / 2, 0, 2 * Math.PI)
+            ctx.closePath()
+            ctx.clip()
+
+            ctx.drawImage(
+              profile,
+              centerX - circleSize / 2,
+              centerY - circleSize / 2,
+              circleSize,
+              circleSize
+            )
+            ctx.restore()
+
+            URL.revokeObjectURL(flyerBlobUrl)
+            resolve(canvas.toDataURL('image/jpeg', 0.95))
+          }
+          profile.onerror = reject
+          profile.src = circularImage
+        }
+        flyer.onerror = reject
+        flyer.src = flyerBlobUrl
+      } catch (error) {
+        reject(error)
+      }
     })
   }
 
