@@ -162,14 +162,32 @@ function App() {
     }
   }
 
+  const dataURLtoBlob = (dataURL: string): Blob => {
+    const byteString = atob(dataURL.split(',')[1])
+    const mimeString = dataURL.split(',')[0].split(':')[1].split(';')[0]
+    const ab = new ArrayBuffer(byteString.length)
+    const ia = new Uint8Array(ab)
+    for (let i = 0; i < byteString.length; i++) {
+      ia[i] = byteString.charCodeAt(i)
+    }
+    return new Blob([ab], { type: mimeString })
+  }
+
   const handleDownload = () => {
     if (!previewUrl) return
+    
+    const blob = dataURLtoBlob(previewUrl)
+    const blobUrl = URL.createObjectURL(blob)
+    
     const link = document.createElement('a')
-    link.href = previewUrl
-    link.download = `UNTIED-Youth-Camp-26-Attending-Graphics.jpg`
+    link.href = blobUrl
+    link.download = 'UNTIED-Youth-Camp-26-Attending-Graphics.jpg'
+    link.target = '_blank'
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
+    
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000)
   }
 
   const handleReset = () => {
