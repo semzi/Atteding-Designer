@@ -166,7 +166,7 @@ function App() {
     if (!previewUrl) return
     const link = document.createElement('a')
     link.href = previewUrl
-    link.download = `UNTIED-Youth-Camp-26-Attending-${Date.now()}.jpg`
+    link.download = `UNTIED-Youth-Camp-26-Attending-Graphics.jpg`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -271,12 +271,18 @@ function App() {
           <div className="preview-section">
             <div className="preview-container glass-card">
               <h2>Your Camp Flyer</h2>
-              {previewUrl && (
+              {previewUrl ? (
                 <img 
                   src={previewUrl} 
                   alt="Generated Flyer" 
                   className="preview-image"
+                  onError={(e) => {
+                    console.error('Image failed to load')
+                    e.currentTarget.style.display = 'none'
+                  }}
                 />
+              ) : (
+                <div className="preview-placeholder">Loading...</div>
               )}
               <div className="preview-actions">
                 <button onClick={() => setShowPreview(false)} className="btn-secondary">
